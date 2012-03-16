@@ -8,6 +8,29 @@ import gzip
 import os
 import os.path
 
+"""
+pandaseq.py is a script for batch assembly of forward and reverse reads
+from Illumina sequencing of 16S amplicons. 
+
+usage: pandaseq.py infile_dir outfile_dir
+
+example:
+pandaseq.py ~/data/seqs/ ~/results/assembled/ > pandaseq_batch.log
+
+Input format: fastq.gz
+Output format: fastq.gz (pandaseq qual scores)
+
+pandaseq parameters:
+The overlap parameter is set for assembling the 541F-806R product 
+(overlap = 40) and should be changed to assemble other PCR products.
+
+The threshold is set to 0.9.
+
+These parameters should be coded into a proper arguement parser at some 
+point, and probably options for the other pandaseq arguements...
+
+"""
+
 def zcount_fastq(filepath):
     """
     counts the reads in a fastq file in a naive way 
@@ -54,7 +77,9 @@ def main():
     threshold = 0.9
     
     # parse filenames and match F and R reads in pairs. 
-
+    if len(sys.argv) != 3:
+        print 'usage: pandaseq.py infile_dir outfile_dir'
+    
     sequence_dir = sys.argv[1]
     print 'inpath: ' + sequence_dir
     outfilepath = sys.argv[2]
