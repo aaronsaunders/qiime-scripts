@@ -83,9 +83,9 @@ def main():
     sequence_dir = sys.argv[1]
     print 'inpath: ' + sequence_dir
     outfilepath = sys.argv[2]
-    print 'outpath: ' + outfilepath
-    print 'overlap: ' + overlap
-    print 'threshold: ' + threshold+ '\n'
+    print 'outpath: {0}'.format(outfilepath)
+    print 'overlap: {0}'.format(overlap)
+    print 'threshold: {0}\n'.format(threshold)
     try:
         assert os.path.isdir(sequence_dir) is True
     except AssertionError:
@@ -109,7 +109,7 @@ def main():
     for sampleID, fnames in samples.items():
         if len(fnames.keys()) != 2:
                 del samples[sampleID]
-                print ('sample {0} not assembled due to name pars 
+                print ('sample {0} not assembled due to name pars \
                                             error'.format(sampleID))
     sample_keys = [ sampleID for sampleID in samples.keys() ]
     print 'The following filenames will be assembled:'
