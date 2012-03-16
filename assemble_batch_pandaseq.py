@@ -128,7 +128,7 @@ def main():
         print 'assembling sample: {0}'.format(sample)
         fread = samples[sample]['R1']
         rread = samples[sample]['R2']
-
+        # todo: parse count and STATS from the log file instead... 
         count = zcount_fastq(fread)
         assemble_reads_pandaseq(fread, rread, overlap, sample)
         assembled = zcount_fastq(sample + '.fastq.gz')
