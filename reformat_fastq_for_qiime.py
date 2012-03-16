@@ -5,7 +5,7 @@ import os.path
 import gzip
 
 
-def zreformat_fastq_for_qiime()
+def zreformat_fastq_for_qiime(filepath):
     """
     reformats the Illumina fastq headers output by pandaseq to headers
     compatible with qiime (identical to qiime spilt_libraries.py).
@@ -13,40 +13,41 @@ def zreformat_fastq_for_qiime()
     @HWI-ST1040:49:D0HVDACXX:4:1101:6323:2652:AAATCACG
     TACGGGGGGAGCAAGCG...
 
-    >AMPA069_1 HWI-ST1040:49:D0HVDACXX:4:6323:2652:1 orig_bc=AAACTTGA 
+    >AMPA069_1 HWI-ST1040:49:D0HVDACXX:4:6323:2652 orig_bc=AAACTTGA 
             new_bc= AAACTTGA bc_diffs=0
     TACGGGGGGAGCAAGCG...
     
     """
+    filename = os.path.basename(filepath)
+    sample = filestub = filename[:-9]
     count = 0
-    written = 0
+    fastqfile = gzip.open(filepath, 'rb')
+    fastafile = gzip.open(sample + '.fna.gz', 'wb')
 
-    with gzip.open(fastqfilename, 'rb') as fastqfile:
-        outfile = gzip.open(outfilename, 'wb')
+    while True:
+        line = fastqfile.readline()
+        if not line:
+            break
+        line = line.strip()
+        if line.startswith('@'):
+            read_id, colon, barcode = line.rpartition(':')
+        else:
+            continue
+        seq = fastqfile.readline()
+        fastqfile.readline()
+        fastqfile.readline()
+        header = '>{sample}_{count} {read} orig_bc={barcode} \
+                new_bc= {barcode} bc_diffs=0\n'.format(
+                sample=sample, read=read_id[1:], 
+                barcode=barcode, count=count)
+        fastafile.write(header + seq)
+        count += 1
+     
+    fastqfile.close()
+    fastafile.close()
+    print '{0}\t{1}'.format(sample, count)
 
-        while True:
-            count  += 1
-            header = fastqfile.readline()
-            if not header:
-                break
-            header = header.strip()
-            seqid, barcode_string = header.split()
-            read, bad_read, skip, barcode = barcode_string.split(':')
-            seq = fastqfile.readline()
-            fastqfile.readline()
-            fastqfile.readline()
-            id = '>{sample}_{count} {seqid}:{read} orig_bc={barcode} \
-                    new_bc= {barcode} bc_diffs=0\n'.format(
-                    sample=sample, seqid=seqid[1:], 
-                    read=read, barcode=barcode, 
-                    count=count)
-            outfile.write(id + seq)
-            written += 1
-
-        print
-        outfile.close()
-        print 'reformatted {0} of {1} sequences'.format(written, count)
-    return
+    return count
 
 
 def main():
@@ -54,11 +55,12 @@ def main():
     infilepath = sys.argv[1]
     outfilepath = sys.argv[2]
 
-    print 'running ' + args[0]
-    print 'infile: ' + infilepath
-    print 'convert outfile:' + outfilepath
+    print
+    print 'running ' + sys.argv[0]
+    print 'indir: ' + infilepath
+    print 'outdir:' + outfilepath
     
-    if not os.path.isdir(sequence_dir):
+    if not os.path.isdir(infilepath):
         print 'sequence directory not found'
         sys.exit()
 
@@ -68,10 +70,12 @@ def main():
     if not os.path.isdir(outfilepath):
         os.mkdir(outfilepath)
     os.chdir(outfilepath)    
+    print 'Converting!\n'
+    print 'sample\tcount'
 
     for fname in fnames:
         inpath = os.path.join(infilepath, fname)
-        zreformat_fastq_for_qiime(infile)
+        zreformat_fastq_for_qiime(inpath)
         
 
 if __name__ == '__main__':
