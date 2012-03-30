@@ -73,7 +73,7 @@ def assemble_reads_pandaseq(fread, rread, overlap, outfilestub):
     
 def main():
 
-    overlap = 40
+    overlap = 30
     threshold = 0.9
     
     # parse filenames and match F and R reads in pairs. 
