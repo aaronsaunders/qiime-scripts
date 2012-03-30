@@ -1,22 +1,11 @@
 #!/usr/bin/env python
 
-from __future__ import division
-__author__ = "aaron modified from Vang Quy Le"
-__copyright__ = "Copyright 2012"
-__credits__ = ["Vang Quy Le"]
-__license__ = "GPL"
-__version__ = "0.3"
-__maintainer__ = "Vang Quy Le"
-__email__ = "lqvang79@gmail.com"
-__status__ = "Beta2"
 import  os, sys, re 
-import warnings
 import commands
 from os.path import basename
 from Bio import SeqIO
 from Bio.SeqIO.QualityIO import FastqGeneralIterator
 from optparse import OptionParser
-from numpy import median
 import gzip
 
 """
@@ -25,101 +14,98 @@ The first version aims to support Fastq files.
 """
 
 
-script_info = {}
-script_info['message'] = 'Do some basic statistics on sequence file '
-#script_info['script_description']
-#script_info['brief_description']
-#script_info['script_description']
-#script_info['script_usage']=[]
-#script_info['output_description']
-#script_info['required_options']
-#script_info['optional_options']
-script_info['version'] = __version__
-print script_info['message']
-
-
-def make_hash_table(inFH, seqFormat, iStart, iEnd):   
+def make_hash_table(inFH):   
     dictUniqSeq = {}
+    headers = {}
     intTotalCount = 0
-    #print seqFormat
-    if seqFormat == 'fastq'.lower() :
-        for title, seq, qual in FastqGeneralIterator(inFH) :
-        #outFH.write("@%s\n%s\n+\n%s\n" % (title, seq[:trim], 
-        #                                         qual[:trim]))
-            seq.strip()
-            #print seq
-            trSeq = seq[iStart:iEnd]
-            if dictUniqSeq.has_key(trSeq) :
-                dictUniqSeq[trSeq] += 1
-            else :
-                dictUniqSeq[trSeq] = 1
-            intTotalCount += 1
-    if seqFormat == 'fasta'.lower() :
-        for record in SeqIO.parse(inFH, "fasta") :
-            seq = record.seq
-            #print seq
-            trSeq = seq[iStart:iEnd]
-            if dictUniqSeq.has_key(trSeq) :
-                dictUniqSeq[trSeq] += 1
-            else :
-                dictUniqSeq[trSeq] = 1
-            intTotalCount += 1
+
+    for title, seq, qual in FastqGeneralIterator(inFH) :
+        seq.strip()
+        if dictUniqSeq.has_key(seq) :
+            dictUniqSeq[seq] += 1
+            headers[seq].append(title)
+        else :
+            dictUniqSeq[seq] = 1
+            headers[seq] = [title]
+        intTotalCount += 1
+
+    return dictUniqSeq, intTotalCount, headers
+
+def filter_fastq_by_coverage(inFH, filteredFH, keep_reads):
+    i = 0
+    for title, seq, qual in FastqGeneralIterator(inFH):
+        if i < 10:
+            print seq
+        if seq in keep_reads:
+            line = '>%s\n%s+%s\n' % (title, seq, qual)
+            filteredFH.write(line)
+        i += 1
+
+    inFH.close()
+    filteredFH.close()
+
+    return 
+
+def main( filein, outpath, cutoff, inFileName ):
+
+    print 'Working on file: ', filein
+    try :  
+        inFH = gzip.open(filein, "rb")
+    except IOError :
+        print "Could not open %s" % filein
+        sys.exit()
+    try :
+        uniquefilename = os.path.join(outpath, inFileName[:-9] + '.unique')
+        outFH = open(uniquefilename, "w")
+    except IOError :
+        print "Could not open %s for writing" % uniquefilename
+    try :
+        statfilename = os.path.join(outpath, inFileName[:-9] + '_stat.txt')
+        outSTATFH = open(statfilename, "w")
+    except IOError :
+        print "Could not open %s for writing" % statfilename
+
+
+    dictUniqSeq, intTotalCount, headers  = make_hash_table(inFH)
+
+    sorted_keys = sorted(dictUniqSeq, key=dictUniqSeq.get, 
+                                             reverse=True)
+
+    over_cutoff_seqs = []
+    over_cutoff_totalcount = 0
+
+    for s in sorted_keys :
+        count = dictUniqSeq[s]
+        if count >= cutoff :
+            over_cutoff_seqs.append(s)
+            over_cutoff_totalcount += count
+            outFH.write("%s\n" % s )
+            outSTATFH.write('%s\t%s\n' % (
+                    len(over_cutoff_seqs), dictUniqSeq[s] ))
+
+    print 'Total reads: %i' %  intTotalCount
+    print 'Unique reads: %i' % len(dictUniqSeq)
+    print 'cutoff: %i' % cutoff
+    print 'unique over cutoff: %i' % (len(over_cutoff_seqs))
+    print 'count over cutoff: %i' % over_cutoff_totalcount
+    print 'percent reads over cutoff: %i' % (
+        over_cutoff_totalcount / float(intTotalCount) * 100)
+
+    inFH.close()
+    outFH.close()
+    outSTATFH.close()
     
-    return dictUniqSeq, len(dictUniqSeq), intTotalCount
-
-
-def main( filein, fileout, fileStat, seqFormat, cutoff, iStart,
-         iEnd, inFileName ):
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        print 'Working on file: ', filein
-        try :  
-            inFH = gzip.open(filein, "rb")
-        except IOError :
-            print "Could not open %s" % filein
-            sys.exit()
-        try :
-            outFH = open(fileout, "w")
-        except IOError :
-            print "Could not open %s for writing" % fileout
-        try :
-            outSTATFH = open(fileStat, "w")
-        except IOError :
-            print "Could not open %s for writing" % fileStat
-
-        
-        dictUniqSeq, intNumUniq, intTotalCount  = make_hash_table(
-                                     inFH, seqFormat, iStart, iEnd)
-
-        intMedian = median(dictUniqSeq.values())
-        
-        sorted_keys = sorted(dictUniqSeq, key=dictUniqSeq.get, 
-                                                 reverse=True)
-        over_cutoff_tally = 0
-        over_cutoff_totalcount = 0
-        for s in sorted_keys :
-            count = dictUniqSeq[s]
-            if count >= cutoff :
-                over_cutoff_tally += 1
-                over_cutoff_totalcount += count
-                outFH.write (">seq_%s_%s\n%s\n" % (
-                             over_cutoff_tally , dictUniqSeq[s], s ))
-                outSTATFH.write('%s\t%s\n' % (
-                             over_cutoff_tally, dictUniqSeq[s] ))
-        over_cutoff_percent = ( over_cutoff_totalcount / intTotalCount) * 100
-
-        print 'TotalCount: %i' %  intTotalCount
-        print 'UniqueCount: %i' % intNumUniq
-        print 'over cutoff: %i (cutoff: %i)' % (over_cutoff_tally, cutoff)
-        print 'count over cutoff: %i' % over_cutoff_totalcount
-        print 'percent over cutoff: %.2f' % over_cutoff_percent
-
+    outfilename = '{0}_uniq{1}fasta.gz'.format(inFileName[:-9], cutoff)
+    outfilename = os.path.join(outpath, outfilename)
+    outfile = gzip.open(outfilename, 'wb')
+    for seq in over_cutoff_seqs:
+        for header in headers[seq]:
+            outfile.write('%s\n%s\n' % (header, seq) )
+    outfile.close()
 
 if __name__ == "__main__":
 
-    parser = OptionParser(usage="usage: type %prog -h for more information",
-                          version=script_info['version'])
+    parser = OptionParser(usage="usage: type %prog -h for more information")
     parser.add_option("-i", "--input",
                      dest="input",
                      help="Input sequence file"
@@ -135,30 +121,6 @@ if __name__ == "__main__":
                      help="Cutoff value for lowest unique seq abundance",
                      default=1
                      )
-    parser.add_option("-f", "--format",
-                     dest="format",
-                     help="Input and output sequence format. \
-                          Currently support 'fasta' and 'fastq'. \
-                          Default will be fastq",
-                     default='fastq'
-                     )
-    parser.add_option("-s", "--stat",
-                     dest="stat",
-                     help="File to output statistic infor. \
-                           Default will be stat_INPUT",
-                     ) 
-    parser.add_option("-b", "--start",
-                     dest="start",
-                     help="Start sequence index to do statistic on, \
-                           [default = 0]",
-                     type='int',
-                     default=0
-                     )
-    parser.add_option("-e", "--end",
-                     dest="end",
-                     help="End sequence index to do stat on, [default=100]",
-                     type='int',
-                     default=100)
     (options, args) = parser.parse_args()
     
     if len(sys.argv) <= 1 :
@@ -167,16 +129,7 @@ if __name__ == "__main__":
 
     # initialise parameters
     filein = options.input
-    fileout = options.output
-    fileStat = options.stat
-    seqFormat = options.format
+    outpath = options.output
     cutoff = options.cutoff
-    iStart = options.start
-    iEnd = options.end
     inFileName = basename(filein)
-    if fileout is None :
-        fileout = 'sub_' + inFileName 
-    if fileStat is None :
-        fileStat = 'stat_' + inFileName
-    main( filein, fileout, fileStat, seqFormat, cutoff, iStart,
-         iEnd, inFileName ) 
+    main( filein, outpath, cutoff, inFileName ) 
