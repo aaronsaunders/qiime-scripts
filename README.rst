@@ -1,5 +1,5 @@
 =============================================
-Scripts for running qiime sith Illumina reads
+Scripts for running qiime with Illumina reads
 =============================================
 
 Pre-processing
