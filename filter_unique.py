@@ -55,11 +55,6 @@ def main( filein, outpath, cutoff, inFileName ):
         print "Could not open %s" % filein
         sys.exit()
     try :
-        uniquefilename = os.path.join(outpath, inFileName[:-9] + '.unique')
-        outFH = open(uniquefilename, "w")
-    except IOError :
-        print "Could not open %s for writing" % uniquefilename
-    try :
         statfilename = os.path.join(outpath, inFileName[:-9] + '_stat.txt')
         outSTATFH = open(statfilename, "w")
     except IOError :
@@ -81,7 +76,6 @@ def main( filein, outpath, cutoff, inFileName ):
         if count >= cutoff :
             over_cutoff_seqs.append(s)
             over_cutoff_totalcount += count
-        outFH.write("%s\n" % s )
         outSTATFH.write('%s\t%s\n' % (n, dictUniqSeq[s] ))
 
     print 'Total reads: %i' %  intTotalCount
@@ -94,7 +88,6 @@ def main( filein, outpath, cutoff, inFileName ):
             over_cutoff_totalcount / float(intTotalCount) * 100)
 
     inFH.close()
-    outFH.close()
     outSTATFH.close()
 
     # write filtered fasta file

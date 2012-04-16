@@ -21,8 +21,14 @@ def zreformat_fastq_for_qiime(filepath):
     filename = os.path.basename(filepath)
     sample = filestub = filename[:-9]
     count = 0
-    fastqfile = gzip.open(filepath, 'rb')
-    fastafile = gzip.open(sample + '.fna.gz', 'wb')
+    try:
+        fastqfile = gzip.open(filepath, 'rb')
+    except:
+        print 'could not open infile %s' % filepath
+    try:
+        fastafile = gzip.open(sample + '.fna.gz', 'wb')
+    except:
+        print 'could not open outfile %s' % sample
 
     while True:
         line = fastqfile.readline()
@@ -36,8 +42,7 @@ def zreformat_fastq_for_qiime(filepath):
         seq = fastqfile.readline()
         fastqfile.readline()
         fastqfile.readline()
-        header = '>{sample}_{count} {read} orig_bc={barcode} \
-                new_bc= {barcode} bc_diffs=0\n'.format(
+        header = '>{sample}_{count} {read} orig_bc={barcode} new_bc= {barcode} bc_diffs=0\n'.format(
                 sample=sample, read=read_id[1:], 
                 barcode=barcode, count=count)
         fastafile.write(header + seq)
@@ -66,7 +71,7 @@ def main():
 
     fnames = ( [ fname for fname in os.listdir(infilepath) 
                               if fname.endswith('.fastq.gz') ] )
-    
+    print fnames
     if not os.path.isdir(outfilepath):
         os.mkdir(outfilepath)
     os.chdir(outfilepath)    

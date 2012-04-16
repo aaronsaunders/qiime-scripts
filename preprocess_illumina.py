@@ -37,7 +37,7 @@ contigs = [ fname for fname in os.listdir(contig_dir)
             if fname.endswith('.fastq.gz')]
 for contig in contigs:
     contigpath = os.path.join(contig_dir, contig)
-    cmd = 'python ~/scr/qiime-scripts/batch_unique.py -i {0} -o {1} -c {2}'.format(contigpath, unique_dir, cutoff)
+    cmd = 'python ~/scr/qiime-scripts/filter_unique.py -i {0} -o {1} -c {2}'.format(contigpath, unique_dir, cutoff)
     print cmd
     subprocess.call(cmd, shell=True)
 

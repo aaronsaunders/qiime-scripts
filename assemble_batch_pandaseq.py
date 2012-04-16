@@ -132,8 +132,10 @@ def main():
         count = zcount_fastq(fread)
         assemble_reads_pandaseq(fread, rread, overlap, sample)
         assembled = zcount_fastq(sample + '.fastq.gz')
-        percent_assembled = float(assembled) / count * 100
-
+        try:
+            percent_assembled = float(assembled) / count * 100
+        except:
+            percentassembled = 0
         print '{0} of {1} ({2}%) assembled\n'.format(
                              assembled, count, round(percent_assembled))
 
