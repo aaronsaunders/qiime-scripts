@@ -11,7 +11,7 @@ The overall workflow:
 *Dependencies*
 Must be installed and callable (binary added to $PATH):
  
-- python 2.6 
+- python 2.*
 - pandaseq (http://github.com/neufeld/pandaseq.git) 
 
 

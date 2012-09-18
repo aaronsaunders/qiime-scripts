@@ -5,10 +5,20 @@ import os.path
 import subprocess
 from os import remove
 import parse_mapfile
+from optparse import OptionParser
 
-inpath = sys.argv[1]
-mapfname = sys.argv[2]
-depth = sys.argv[3]
+parser = OptionParser()
+parser.add_option("-i", "--indir", dest="inpath",
+       help="path to input dir")
+parser.add_option("-m", "--mapfile", dest="mapfname",
+       help="path to mapfile")
+parser.add_option("-d", "--depth", dest="depth",
+       type="int", default = 0,
+       help="read depth sampled")
+#parser.add_option("-r", "--reduce", default=False,
+#       action="store_true",
+#       help="switch to make to depth just an upper limit")
+(options, args) = parser.parse_args()
 
 # infiles
 with open(mapfname, 'rU') as mapfh:
@@ -32,7 +42,7 @@ for fname in inpaths:
     (count, err) = result.communicate()
     if err:
        count = 0
-    if int(count) == int(depth):
+    if depth and int(count) == depth:
         subprocess.call('cat {0} >> merged_seqs.fna'.format(tempfname),
                     shell=True)
         print '%s merged into merged_seqs.fna' % tempfname
